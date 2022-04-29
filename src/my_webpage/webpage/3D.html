@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>PARC Robotique</title>
+
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link href="style.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+
+    <!-- Vuejs -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+    <!-- ROS stuff -->
+    <script type="text/javascript" src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+    <!-- <script type="text/javascript" src="https://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script> -->
+    <script src="libs/roslib.min.js"></script>
+
+    <!-- 3D visualization -->
+    <!-- <script src="http://static.robotwebtools.org/threejs/current/three.min.js"></script> -->
+    <script src="libs/three.min.js"></script>
+    <!-- <script src="http://static.robotwebtools.org/threejs/current/ColladaLoader.min.js"></script> -->
+    <script src="libs/ColladaLoader.js"></script>
+    <!-- <script src="http://static.robotwebtools.org/ColladaAnimationCompress/current/ColladaLoader2.min.js"></script> -->
+    <script src="libs/ColladaLoader2.js"></script>
+    <!-- <script src="http://static.robotwebtools.org/threejs/current/STLLoader.min.js"></script> -->
+    <script src="libs/STLLoader.js"></script>
+    <!-- <script src="http://static.robotwebtools.org/ros3djs/current/ros3d.min.js"></script> -->
+    <script src="libs/ros3d.min.js"></script>
+
+    </head>
+
+    <body>
+
+        <script type="text/javascript" src="js/jquery-3.6.0.min.js"></script>
+        <script type="text/javascript" src="js/bootstrap.bundle.min.js"></script>
+    
+        <nav class="navbar navbar-expand-sm navbar-light bg-light">
+    
+        <a href="#" class="navbar-brand"><img class="logo" src="PR.png"></a> <!-- Ajout du logo -->
+        
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav m-auto">
+    
+            <li class="nav-item">
+                <a class="nav-link text-dark" href="index.html"><i class="bi bi-house"></i> Home</span></a>
+            </li>
+    
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle text-dark font-weight-bold" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-expanded="false"><i class="bi bi-gear"></i> Configure</a>
+                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                <a class="dropdown-item text-dark" href="Motors.html">Motors</a>
+                <a class="dropdown-item text-dark" href="Teach.html">Teach</a>
+                <a class="dropdown-item text-dark font-weight-bold" href="3D.html">3D</a>
+                </div>
+            </li>
+    
+            <li class="nav-item">
+                <a class="nav-link text-dark" href="#"><i class="bi bi-people"></i> About us</a>
+            </li>
+    
+            </ul>
+        </div>
+    
+        </nav>
+    
+        <br>
+    
+        <main id="vueApp" class="container">
+            <div class="connexion">
+                <div class="card">
+                    <div class="card-body">
+                    <h3 class="text-center">Connection status : </h3>
+                    <hr>
+                    <label>ROSBridge address</label>
+    
+                    <input type="text" v-model="rosbridge_address" />
+    
+                    <br>
+    
+                    <button :disabled="loading" class="btn btn-danger" @click="disconnect" v-if="connected">Disconnect!</button>
+                    <button :disabled="loading" class="btn btn-success" @click="connect" v-else>Connect!</button>
+    
+                    </div>
+                </div>
+            </div>
+
+            <!-- <p class="col-md-12 col-sm-6" style="overflow:auto;">
+                <p class="row">
+                    <p class="col-md-12 text-center my-2">
+                        <p id="div3DViewer"></p>
+                    </p>
+                </p>
+            </p> -->
+        </main>
+    
+        <footer class="bg-light text-center text-lg-start">
+        <div class="text-center p-3">
+            © 2022 Copyright : PARC Robotique 
+        </div>
+        </footer>
+    
+        <script src="main.js"></script>
+    
+    </body>
+</html>

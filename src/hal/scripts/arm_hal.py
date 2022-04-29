@@ -1,0 +1,242 @@
+import typing as tp
+from math import radians, degrees
+import rospy
+
+# from rospy.parameter import Parameter
+
+from std_msgs.msg import Float64MultiArray
+from trajectory_msgs.msg import JointTrajectoryPoint
+
+from sensor_msgs.msg import JointState
+
+from copy import copy
+
+from transmission import Transmission, Kinematic
+from motor import Motor, get_bus
+from hal_config import M_BASE, M_EPAULE, M_COUDE, M_POIGNET_1, M_POIGNET_2, M_POIGNET_3
+from hal_config import T_BASE, T_EPAULE, T_COUDE, T_POIGNET_1, T_POIGNET_2, T_POIGNET_3
+#from .homing_controller import HomingController, HomingState
+
+
+JOINTS_NAMES = ['frontal_hip', 'sagittal_hip', 'knee']
+class HardwareAbstractionLayer():
+
+    def __init__(self, period : float = 0.01):
+        #super().__init__('HardwareAbstractionLayer')
+        self.is_calibrating = False
+        self.controllers = []
+        self.motors = []
+        self.motors_target = []
+        self.transmissions = []
+        self.joints_targets = []
+
+        self.init_drivers()
+        self.init_transmissions()
+        
+        self.joint_publisher_ = rospy.Publisher('/joint_states', JointState, queue_size=1)
+        self.motor_publisher_ = rospy.Publisher('/motor_states', JointState, queue_size=1)
+        self.motor_publisher_ = rospy.Publisher('/motor_targets', JointState, queue_size=1)
+        self.motor_target_publisher_ = rospy.Subscriber('/joint_position_cmd', JointTrajectoryPoint, self.update_position_cmd,1)
+        
+        self.init_parameters()
+        self.init_targets()
+
+        self.period = period
+        self.timer = rospy.Timer(rospy.Duration(self.period), self.routine)
+        rospy.loginfo(f"Hardware Abstraction Layer is ready, period: {period} sec")
+        
+        for motor in self.motors:
+            motor.start()
+
+        # self.start_calibration()
+
+    # def start_calibration(self):
+    #     self.is_calibrating = True
+    #     for motor, transmission in zip(self.motors, self.transmissions):
+    #         pos, _ = motor.state()
+    #         controller = HomingController(motor.name, pos, transmission.high * transmission.ratio)
+    #         self.controllers.append(controller)
+    #     self.controllers[0].start()
+
+    def init_drivers(self):
+        bus = get_bus()
+        self.motors.append(Motor(M_BASE, bus))
+        #self.motors.append(Motor(M_EPAULE, bus))
+        #self.motors.append(Motor(M_COUDE, bus))
+        #self.motors.append(Motor(M_POIGNET_1, bus))
+        #self.motors.append(Motor(M_POIGNET_2, bus))
+        #self.motors.append(Motor(M_POIGNET_3, bus))
+        rospy.loginfo(f'All motors initialized')
+
+    def init_transmissions(self):
+        transmission_conf = [T_BASE, T_EPAULE, T_COUDE, T_POIGNET_1, T_POIGNET_2, T_POIGNET_3]
+
+        for i, motor in enumerate(self.motors):
+            conf = copy(transmission_conf[i])
+            # Read initial position and use it as the transmission zero.
+            conf.zero = motor.position()
+            self.transmissions.append(Transmission(conf))
+        rospy.loginfo(f'All transmissions initialized')
+
+    def init_parameters(self):
+        """
+        init ros parameters
+        """
+        position_gain = []
+        velocity_gain = []
+        integrator_gain = []
+        for i, mot in enumerate(self.motors):
+        # Use first motor as init values, they are applied to all of them.
+            position_gain.append(mot.position_gain)
+            velocity_gain.append(mot.velocity_gain)
+            integrator_gain.append(mot.integrator_gain)
+            rospy.set_param(f'/my_gains/position_mot{i}', position_gain)
+            rospy.set_param(f'/my_gains/velocity_gain{i}', velocity_gain)
+            rospy.set_param(f'/my_gains/integrator_gain{i}', integrator_gain)
+        self.update_parameters(rospy.get_param('/my_gains'))
+
+    def update_parameters(self, params : dict):
+        for i,motor in enumerate(self.motors):
+            for key in params:
+                if key == f'position_gain{i}':
+                    pos_gain = params[key]
+                if key== f'velocity_gain{i}':
+                    vel_gain = params[key]
+                if key == f'integrator_gain{i}':
+                    integrator_gain = params[key]
+            motor.set_gains(pos_gain, vel_gain, integrator_gain)
+
+    def init_targets(self) -> None:
+        """
+        @brief Initialize target joint position to initial position (stay in place)
+        """
+        self.motors_target = []
+        for motor in self.motors:
+            pos, vel = motor.state()
+            motor_state = Kinematic(pos, vel)
+            self.motors_target.append(motor_state)
+        self.joints_targets = self.actuator_to_joint(self.motors_target)
+
+    def actuator_to_joint(self, motor_positions: tp.List[Kinematic]) -> tp.List[Kinematic]:
+        joint_states = []
+        for motor_state, transmission in zip(motor_positions, self.transmissions):
+            joint_states.append(transmission.actuator_to_joint(motor_state))
+        
+        return joint_states
+
+
+
+    def update_torque_cmd(self, msg : Float64MultiArray):
+        self.torque_target = msg.data[0]
+
+    def update_position_cmd(self, msg : JointTrajectoryPoint):
+        for i, pos in enumerate(msg.positions):
+            self.joints_target[i] = Kinematic(pos, 0.0)
+
+    def send_targets(self, motor_targets: tp.List[Kinematic]):
+        motor_msg = JointState()
+        motor_msg.header.stamp = super().get_clock().now().to_msg()
+
+        for i, target in enumerate(motor_targets):
+            motor_msg.name.append(self.motors[i].name)
+            motor_msg.position.append(motor_targets[i].position)
+            motor_msg.velocity.append(motor_targets[i].velocity)
+            self.motors[i].set_kinematic_target(target.position, target.velocity)
+        self.motor_target_publisher_.publish(motor_msg)
+
+    def joint_to_actuator(self, joint_positions: tp.List[Kinematic]) -> tp.List[float]:
+        hip_pos = joint_positions[1].position
+        knee_pos = joint_positions[2].position
+        knee_actuator_pos = radians(180) - knee_pos + hip_pos
+        targets = [joint_positions[0], joint_positions[1], Kinematic(knee_actuator_pos)]
+
+        motor_targets = []
+        for transmission, joint in zip(self.transmissions, targets):
+            target = transmission.joint_to_actuator(joint)
+            motor_targets.append(target)
+        return motor_targets
+
+    def read_state(self) -> tp.List[Kinematic]:
+        motors_state = []
+        motor_msg = JointState()
+        motor_msg.header.stamp = rospy.get_rostime()
+        for motor in self.motors:
+            pos, vel = motor.state()
+            motor_state = Kinematic(pos, vel)
+            motors_state.append(motor_state)
+            motor_msg.name.append(motor.name)
+            motor_msg.position.append(motor_state.position)
+            motor_msg.velocity.append(motor_state.velocity)
+        self.motor_publisher_.publish(motor_msg)
+        return motors_state
+
+    def publish_joints_state(self, joints_state: tp.List[Kinematic]):
+        joint_msg = JointState()
+        joint_msg.header.stamp = super().get_clock().now().to_msg()
+        for i, joint in enumerate(joints_state):
+            joint_msg.name.append(self.motors[i].name)
+            joint_msg.position.append(joint.position)
+            joint_msg.velocity.append(joint.velocity)
+        self.joint_publisher_.publish(joint_msg)
+
+    # def calibrate(self) -> bool:
+    #     targets = []
+
+    #     states = [c.get_state() for c in self.controllers]
+
+    #     # First axis constroller
+    #     if states[0] == HomingState.READY:
+    #         if states[1] == HomingState.INIT and states[2] == HomingState.INIT:
+    #             self.controllers[1].start()
+    #             self.controllers[2].start()
+
+    #     if states[0] == HomingState.WAITING:
+    #         self.controllers[0].start()
+
+    #     if states[1] == HomingState.WAITING and states[2] == HomingState.WAITING:
+    #         self.controllers[1].start()
+    #         self.controllers[2].start()
+
+    #     for state, controller in zip(self.motors_state, self.controllers):
+    #         target_pos = controller.update(state.position, self.period)
+    #         targets.append(Kinematic(target_pos))
+
+    #     self.motors_target = targets
+    #     return all([ c.get_state() == HomingState.READY for c in self.controllers])
+
+    def routine(self):
+        self.motors_state = self.read_state()
+        self.joint_states = self.actuator_to_joint(self.motors_state)
+        self.publish_joints_state(self.joint_states)
+        # if not self.is_calibrating:
+        #     self.motors_target = self.joint_to_actuator(self.joints_target)
+        # else:
+        #     finished = self.calibrate()
+        #     if finished:
+        #         for controller, transmission in zip(self.controllers, self.transmissions):
+        #             transmission.compute_zero(high=controller.get_endstop())
+        #         self.joint_targets = self.actuator_to_joint(self.motors_state)
+        #         rospy.loginfo(f'Robot is calibrated!  \o/')
+        #         # self.motors[0].stop()
+        #         # self.motors[1].stop()
+        #         # self.motors[2].stop()
+        #     self.is_calibrating = not finished
+        self.send_targets(self.motors_target)
+
+    def stop(self):
+        rospy.loginfo(f'Stopping HAL Node')
+        for motor in self.motors:
+            motor.tm.idle()
+
+def main(args=None):
+    rospy.init_node('hal',anonymous=True)
+    hal_object = HardwareAbstractionLayer(0.01)
+    try:
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass
+    hal_object.stop()
+
+
+if __name__ == '__main__':
+    main()

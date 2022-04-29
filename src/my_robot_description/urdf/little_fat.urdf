@@ -1,0 +1,132 @@
+<?xml version="1.0"?>
+<robot name="Little_Fat">
+
+    <material name="vert">
+        <color rgba="0 1 0.31 1"/>
+    </material>
+
+    <material name="blanc">
+        <color rgba="1 1 1 1"/>
+    </material>
+
+   	<!-- * * * Link Definitions * * * -->
+    <link name="Base">
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://my_robot_description/models/little_fat/meshes/Base.stl"/>
+            </geometry>
+            <material name="vert"/>
+        </visual>
+	</link>
+
+    <link name="Axe1">
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://my_robot_description/models/little_fat/meshes/Axe1.stl"/>
+            </geometry>
+            <material name="blanc"/>
+        </visual>
+	</link>
+
+    <link name="Axe2">
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://my_robot_description/models/little_fat/meshes/Axe2.stl"/>
+            </geometry>
+            <material name="vert"/>
+        </visual>
+	</link>
+
+    <link name="Axe3">
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://my_robot_description/models/little_fat/meshes/Axe3.stl"/>
+            </geometry>
+            <material name="blanc"/>
+        </visual>
+	</link>
+
+    <link name="Axe4">
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://my_robot_description/models/little_fat/meshes/Axe4.stl"/>
+            </geometry>
+            <material name="vert"/>
+        </visual>
+	</link>
+
+    <link name="Axe5">
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://my_robot_description/models/little_fat/meshes/Axe5.stl"/>
+            </geometry>
+            <material name="blanc"/>
+        </visual>
+	</link>
+
+    <link name="Axe6">
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://my_robot_description/models/little_fat/meshes/Axe6.stl"/>
+            </geometry>
+            <material name="vert"/>
+        </visual>
+	</link>
+
+    <joint name="joint_Base_Axe1" type="revolute">
+    	<parent link="Base"/>
+    	<child link="Axe1"/>
+        <origin xyz="0 0 106.926" rpy="0 0 0"/>
+        <limit lower="-3.1415" upper="3.1415" effort="1000" velocity="0.5"/>
+        <axis xyz="0 0 1"/>
+	</joint>
+
+    <joint name="joint_Axe1_Axe2" type="revolute">
+    	<parent link="Axe1"/>
+    	<child link="Axe2"/>
+        <origin xyz="10.401 0 57.15" rpy="0 1.5708 0"/>
+        <limit lower="-3.1415" upper="0" effort="1000" velocity="0.5"/>
+        <axis xyz="0 0 1"/>
+	</joint>
+
+    <joint name="joint_Axe2_Axe3" type="revolute">
+    	<parent link="Axe2"/>
+    	<child link="Axe3"/>
+        <origin xyz="0 -203.20 -48.5" rpy="0 0 0"/>
+        <limit lower="-2.3562" upper="2.3562" effort="1000" velocity="0.5"/>
+        <axis xyz="0 0 1"/>
+	</joint>
+
+    <joint name="joint_Axe3_Axe4" type="revolute">
+    	<parent link="Axe3"/>
+    	<child link="Axe4"/>
+        <origin xyz="0 -177.80 10.805" rpy="-3.14159 0 0"/>
+        <limit lower="-2.3562" upper="2.3562" effort="1000" velocity="0.5"/>
+        <axis xyz="0 0 1"/>
+	</joint>
+
+    <joint name="joint_Axe4_Axe5" type="revolute">
+    	<parent link="Axe4"/>
+    	<child link="Axe5"/>
+        <origin xyz="0 31.455 -26.67" rpy="-1.5708 0 0"/>
+        <limit lower="-2.3562" upper="2.3562" effort="1000" velocity="0.5"/>
+        <axis xyz="0 0 1"/>
+	</joint>
+
+    <joint name="joint_Axe5_Axe6" type="revolute">
+    	<parent link="Axe5"/>
+    	<child link="Axe6"/>
+        <origin xyz="0 -29.104 26.67" rpy="-1.5708 0 -3.14159"/>
+        <limit lower="-2.3562" upper="2.3562" effort="1000" velocity="0.5"/>
+        <axis xyz="0 0 1"/>
+	</joint>
+
+
+</robot>
