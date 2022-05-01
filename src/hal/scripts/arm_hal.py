@@ -24,7 +24,6 @@ JOINTS_NAMES = ['frontal_hip', 'sagittal_hip', 'knee']
 class HardwareAbstractionLayer():
 
     def __init__(self, period : float = 0.01):
-        #super().__init__('HardwareAbstractionLayer')
         self.is_calibrating = False
         self.controllers = []
         self.motors = []
@@ -42,14 +41,13 @@ class HardwareAbstractionLayer():
         
         self.init_parameters()
         self.init_targets()
-        rospy.loginfo(f"init target ok")
 
         self.period = period
         self.timer = rospy.Timer(rospy.Duration(self.period), self.routine)
         rospy.loginfo(f"Hardware Abstraction Layer is ready, period: {period} sec")
         
-        # for motor in self.motors:
-        #     motor.start()
+        for motor in self.motors:
+            motor.start()
 
         # self.start_calibration()
 
@@ -85,7 +83,9 @@ class HardwareAbstractionLayer():
         """
         init ros parameters
         """
-        rospy.delete_param('/my_gains')
+        if rospy.has_param('/my_gains'):
+            rospy.delete_param('/my_gains')
+
         for i, mot in enumerate(self.motors):
             rospy.set_param(f'/my_gains/position_gain_{mot.name}', mot.position_gain)
             rospy.set_param(f'/my_gains/velocity_gain_{mot.name}', mot.velocity_gain)
@@ -121,8 +121,6 @@ class HardwareAbstractionLayer():
         
         return joint_states
 
-
-
     def update_torque_cmd(self, msg : Float64MultiArray):
         self.torque_target = msg.data[0]
 
@@ -132,14 +130,14 @@ class HardwareAbstractionLayer():
 
     def send_targets(self, motor_targets: tp.List[Kinematic]):
         motor_msg = JointState()
-        motor_msg.header.stamp = super().get_clock().now().to_msg()
+        motor_msg.header.stamp = rospy.get_rostime()
 
         for i, target in enumerate(motor_targets):
             motor_msg.name.append(self.motors[i].name)
             motor_msg.position.append(motor_targets[i].position)
             motor_msg.velocity.append(motor_targets[i].velocity)
             self.motors[i].set_kinematic_target(target.position, target.velocity)
-        self.motor_target_publisher_.publish(motor_msg)
+        #self.motor_target_publisher_.publish(motor_msg)
 
     def joint_to_actuator(self, joint_positions: tp.List[Kinematic]) -> tp.List[float]:
         hip_pos = joint_positions[1].position
@@ -169,7 +167,7 @@ class HardwareAbstractionLayer():
 
     def publish_joints_state(self, joints_state: tp.List[Kinematic]):
         joint_msg = JointState()
-        joint_msg.header.stamp = super().get_clock().now().to_msg()
+        joint_msg.header.stamp = rospy.get_rostime()
         for i, joint in enumerate(joints_state):
             joint_msg.name.append(self.motors[i].name)
             joint_msg.position.append(joint.position)
@@ -201,7 +199,7 @@ class HardwareAbstractionLayer():
     #     self.motors_target = targets
     #     return all([ c.get_state() == HomingState.READY for c in self.controllers])
 
-    def routine(self):
+    def routine(self, timer):
         self.motors_state = self.read_state()
         self.joint_states = self.actuator_to_joint(self.motors_state)
         self.publish_joints_state(self.joint_states)
@@ -227,8 +225,8 @@ class HardwareAbstractionLayer():
 
 def main(args=None):
     rospy.init_node('hal',anonymous=True)
-    hal_object = HardwareAbstractionLayer(0.01)
     try:
+        hal_object = HardwareAbstractionLayer(0.1)
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
