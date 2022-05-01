@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 import typing as tp
 from math import pi, isclose, degrees
 from dataclasses import dataclass
@@ -5,8 +7,10 @@ from numpy import clip
 import can
 
 from tinymovr import Tinymovr
-from tinymovr.iface.can_bus import CANBus
+from tinymovr.iface.can_bus import CANBus, guess_channel
 from tinymovr.units import get_registry
+
+import rospy
 
 ureg = get_registry()
 Amps = ureg.ampere
@@ -30,8 +34,9 @@ class MotorConfig:
 
 
 def get_bus() -> CANBus:
-    can_bus: can.Bus = can.Bus(bustype='socketcan',
-                                   channel='can0',
+    channel = guess_channel(bustype_hint='slcan')
+    can_bus: can.Bus = can.Bus(bustype='slcan',
+                                   channel=channel,
                                    bitrate=1000000)
     iface = CANBus(can_bus)
     return iface
@@ -53,10 +58,10 @@ class Motor:
     def init_driver(self, can_bus: CANBus) -> None:
         self.tm = Tinymovr(node_id=self.can_id, iface=can_bus)
 
-        assert(self.tm.motor_config.flags == 1)
+        assert self.tm.motor_config.flags == 1 , "le moteur n'est pas configuré se referer au readme hal"
         resolution = 2**13
         self.scale = (2 * pi) / resolution * self.direction
-        self.integrator_gain = self.tm.integrator_gains.magnitude
+        #self.integrator_gain = self.tm.integrator_gains.magnitude
 
     def start(self):
         self.tm.position_control()
@@ -128,10 +133,10 @@ class Motor:
         target = int(position  / self.scale)
         self.tm.set_pos_setpoint(target)
 
-    def set_gains(self, position: float, velocity : float, integrator: float) -> None:
+    def set_gains(self, position: float, velocity : float, integrator: float = 0) -> None:
         self.position_gain = position
         self.velocity_gain = velocity
-        self.integrator_gain = integrator
+        #self.integrator_gain = integrator
         self.tm.set_gains(position, velocity)
-        self.tm.set_integrator_gains(integrator)
-        print(f"Motor params updated: pos {position}, vel {velocity}, vel integrator: {integrator}")
+        #self.tm.set_integrator_gains(integrator)
+        rospy.loginfo(f"Motor params updated: pos {position}, vel {velocity}, vel integrator: {integrator}")

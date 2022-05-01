@@ -24,10 +24,10 @@ Pour l'affichage du 3D sur l'interface web dans votre workspace clonner le git [
 git clone https://github.com/RobotWebTools/tf2_web_republisher
 ```
 
-
+### [Tinymovr](https://tinymovr.readthedocs.io/en/latest/) 
 Pour l'installation de [Tinymovr](https://tinymovr.readthedocs.io/en/latest/) :
 ```bash
-pip3 install tinymovr
+pip install tinymovr==0.3.12
 echo 'export PATH="/home/barek/.local/bin/:$PATH"'>> ~/.bashrc
 source ~/.bashrc
 ```
@@ -36,10 +36,18 @@ Pour l'utilisation de Tinymovr studion :
 ```bash
 tinymovr
 ```
-
-sudo chmod 666 /dev/ttyACM0 
+dans le cas de l'erreur suivante :
+```bash
 can.exceptions.CanInitializationError: [Errno 13] could not open port /dev/ttyACM0: [Errno 13] Permission denied: '/dev/ttyACM0'
-
+```
+deux possibilitées :
+```bash
+sudo chmod 666 /dev/ttyACM0 
+```
+ou 
+```bash
+sudo adduser $USER root
+```
 # Utilisation
 ## initialisation
 Une fois le repos git cloner effectuer une commande catkin_make dans Arm-Robot-ROS/

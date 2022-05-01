@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 from math import radians
 
 from motor import MotorConfig

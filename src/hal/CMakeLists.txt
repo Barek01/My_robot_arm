@@ -8,10 +8,10 @@ project(hal)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  rospy
   sensor_msgs
   std_msgs
   trajectory_msgs
-  rospy
 )
 
 ## System dependencies are found with CMake's conventions
@@ -21,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-catkin_python_setup()
+# catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -106,7 +106,7 @@ catkin_python_setup()
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES hal
-#  CATKIN_DEPENDS sensor_msgs std_msgs trajectory_msgs
+#  CATKIN_DEPENDS rospy sensor_msgs std_msgs trajectory_msgs
 #  DEPENDS system_lib
 )
 
@@ -160,15 +160,10 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-catkin_install_python(PROGRAMS
-  #scripts/__init__.py
-  #scripts/hal_config.py
-  #scripts/motor.py
-  #scripts/transmission.py
-  #scripts/arm_hal.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
+# catkin_install_python(PROGRAMS
+#   scripts/my_python_script
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html

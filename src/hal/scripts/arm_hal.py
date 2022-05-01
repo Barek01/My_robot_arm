@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 import typing as tp
 from math import radians, degrees
 import rospy
@@ -40,13 +42,14 @@ class HardwareAbstractionLayer():
         
         self.init_parameters()
         self.init_targets()
+        rospy.loginfo(f"init target ok")
 
         self.period = period
         self.timer = rospy.Timer(rospy.Duration(self.period), self.routine)
         rospy.loginfo(f"Hardware Abstraction Layer is ready, period: {period} sec")
         
-        for motor in self.motors:
-            motor.start()
+        # for motor in self.motors:
+        #     motor.start()
 
         # self.start_calibration()
 
@@ -82,27 +85,21 @@ class HardwareAbstractionLayer():
         """
         init ros parameters
         """
-        position_gain = []
-        velocity_gain = []
-        integrator_gain = []
+        rospy.delete_param('/my_gains')
         for i, mot in enumerate(self.motors):
-        # Use first motor as init values, they are applied to all of them.
-            position_gain.append(mot.position_gain)
-            velocity_gain.append(mot.velocity_gain)
-            integrator_gain.append(mot.integrator_gain)
-            rospy.set_param(f'/my_gains/position_mot{i}', position_gain)
-            rospy.set_param(f'/my_gains/velocity_gain{i}', velocity_gain)
-            rospy.set_param(f'/my_gains/integrator_gain{i}', integrator_gain)
+            rospy.set_param(f'/my_gains/position_gain_{mot.name}', mot.position_gain)
+            rospy.set_param(f'/my_gains/velocity_gain_{mot.name}', mot.velocity_gain)
+            rospy.set_param(f'/my_gains/integrator_gain_{mot.name}', mot.integrator_gain)  
         self.update_parameters(rospy.get_param('/my_gains'))
 
     def update_parameters(self, params : dict):
         for i,motor in enumerate(self.motors):
             for key in params:
-                if key == f'position_gain{i}':
+                if key == f'position_gain_{motor.name}':
                     pos_gain = params[key]
-                if key== f'velocity_gain{i}':
+                if key== f'velocity_gain_{motor.name}':
                     vel_gain = params[key]
-                if key == f'integrator_gain{i}':
+                if key == f'integrator_gain_{motor.name}':
                     integrator_gain = params[key]
             motor.set_gains(pos_gain, vel_gain, integrator_gain)
 
