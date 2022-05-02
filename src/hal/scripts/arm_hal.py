@@ -36,9 +36,9 @@ class HardwareAbstractionLayer():
         
         self.joint_publisher_ = rospy.Publisher('/joint_states', JointState, queue_size=1)
         self.motor_publisher_ = rospy.Publisher('/motor_states', JointState, queue_size=1)
-        self.motor_publisher_ = rospy.Publisher('/motor_targets', JointState, queue_size=1)
-        self.motor_target_publisher_ = rospy.Subscriber('/joint_position_cmd', JointTrajectoryPoint, self.update_position_cmd,1)
-        
+        self.motor_target_publisher_ = rospy.Publisher('/motor_targets', JointState, queue_size=1)
+        self.motor_target_subscriber_ = rospy.Subscriber('/joint_position_cmd', JointTrajectoryPoint, self.update_position_cmd,1)
+
         self.init_parameters()
         self.init_targets()
 
@@ -124,9 +124,9 @@ class HardwareAbstractionLayer():
     def update_torque_cmd(self, msg : Float64MultiArray):
         self.torque_target = msg.data[0]
 
-    def update_position_cmd(self, msg : JointTrajectoryPoint):
+    def update_position_cmd(self, msg : JointTrajectoryPoint, test):
         for i, pos in enumerate(msg.positions):
-            self.joints_target[i] = Kinematic(pos, 0.0)
+            self.joints_targets[i] = Kinematic(pos, 0.0)
 
     def send_targets(self, motor_targets: tp.List[Kinematic]):
         motor_msg = JointState()
@@ -137,18 +137,12 @@ class HardwareAbstractionLayer():
             motor_msg.position.append(motor_targets[i].position)
             motor_msg.velocity.append(motor_targets[i].velocity)
             self.motors[i].set_kinematic_target(target.position, target.velocity)
-        #self.motor_target_publisher_.publish(motor_msg)
+        self.motor_target_publisher_.publish(motor_msg)
 
     def joint_to_actuator(self, joint_positions: tp.List[Kinematic]) -> tp.List[float]:
-        hip_pos = joint_positions[1].position
-        knee_pos = joint_positions[2].position
-        knee_actuator_pos = radians(180) - knee_pos + hip_pos
-        targets = [joint_positions[0], joint_positions[1], Kinematic(knee_actuator_pos)]
-
         motor_targets = []
-        for transmission, joint in zip(self.transmissions, targets):
-            target = transmission.joint_to_actuator(joint)
-            motor_targets.append(target)
+        for transmission, joint in zip(self.transmissions, joint_positions):
+            motor_targets.append(transmission.joint_to_actuator(joint))
         return motor_targets
 
     def read_state(self) -> tp.List[Kinematic]:
@@ -203,8 +197,10 @@ class HardwareAbstractionLayer():
         self.motors_state = self.read_state()
         self.joint_states = self.actuator_to_joint(self.motors_state)
         self.publish_joints_state(self.joint_states)
+        self.motors_target = self.joint_to_actuator(self.joints_targets)
+        
         # if not self.is_calibrating:
-        #     self.motors_target = self.joint_to_actuator(self.joints_target)
+        #       self.motors_target = self.joint_to_actuator(self.joints_target)
         # else:
         #     finished = self.calibrate()
         #     if finished:
