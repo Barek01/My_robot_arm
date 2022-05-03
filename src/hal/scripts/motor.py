@@ -13,6 +13,7 @@ from tinymovr.units import get_registry
 import rospy
 
 ureg = get_registry()
+
 Amps = ureg.ampere
 s = ureg.second
 tick = ureg.tick
@@ -55,6 +56,8 @@ class Motor:
         self.update_config()
         self.is_running = False
 
+    # ======= Inits =======
+
     def init_driver(self, can_bus: CANBus) -> None:
         self.tm = Tinymovr(node_id=self.can_id, iface=can_bus)
 
@@ -62,16 +65,6 @@ class Motor:
         resolution = 2**13
         self.scale = (2 * pi) / resolution * self.direction
         #self.integrator_gain = self.tm.integrator_gains.magnitude
-
-    def start(self):
-        self.tm.position_control()
-        self.is_running = True
-
-    def stop(self):
-        if self.is_running:
-            self.tm.set_state(state=0)
-            print(f"{self.name} stopped")
-            self.is_running = False
 
     def update_config(self) -> None:
         """
@@ -81,17 +74,6 @@ class Motor:
         changed = changed or self.update_gains()
         if changed:
             self.tm.save_config()
-
-    def update_max_current(self) -> bool:
-        changed = False
-        limits = self.tm.limits
-        max_current = limits.current
-        max_vel = limits.velocity
-        if not isclose(self.max_current, max_current.magnitude, rel_tol=TOLERANCE):
-            self.tm.set_limits(velocity=max_vel, current=self.max_current)
-            print(f"{self.name}: Changed current limit to {self.max_current}, was {max_current.magnitude}")
-            changed = True
-        return changed
 
     def update_gains(self) -> bool:
         gains_changed = False
@@ -107,6 +89,27 @@ class Motor:
             self.tm.set_gains(position=self.position_gain, velocity=self.velocity_gain)
 
         return gains_changed
+
+    def start(self):
+        self.tm.position_control()
+        self.is_running = True
+
+    def stop(self):
+        if self.is_running:
+            self.tm.set_state(state=0)
+            print(f"{self.name} stopped")
+            self.is_running = False
+
+    def update_max_current(self) -> bool:
+        changed = False
+        limits = self.tm.limits
+        max_current = limits.current
+        max_vel = limits.velocity
+        if not isclose(self.max_current, max_current.magnitude, rel_tol=TOLERANCE):
+            self.tm.set_limits(velocity=max_vel, current=self.max_current)
+            print(f"{self.name}: Changed current limit to {self.max_current}, was {max_current.magnitude}")
+            changed = True
+        return changed
 
     def position(self) -> float:
         ticks = self.tm.encoder_estimates.position

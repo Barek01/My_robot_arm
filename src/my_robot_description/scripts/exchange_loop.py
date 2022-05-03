@@ -25,7 +25,11 @@ def callback(msg):
     #    Joint_point.positions.append(math.radians(position))
 
     Joint_point.positions.append(math.radians(msg.position[0]))
-    Joint_point.velocities.append(0.1)
+    Joint_point.positions.append(math.radians(msg.position[1]))
+
+    Joint_point.velocities.append(0.0)
+    Joint_point.velocities.append(0.0)
+
 
     #Joint_traj.points = Joint_point
 

@@ -37,7 +37,7 @@ class HardwareAbstractionLayer():
         self.joint_publisher_ = rospy.Publisher('/joint_states', JointState, queue_size=1)
         self.motor_publisher_ = rospy.Publisher('/motor_states', JointState, queue_size=1)
         self.motor_target_publisher_ = rospy.Publisher('/motor_targets', JointState, queue_size=1)
-        self.motor_target_subscriber_ = rospy.Subscriber('/joint_position_cmd', JointTrajectoryPoint, self.update_position_cmd,1)
+        self.motor_target_subscriber_ = rospy.Subscriber('/joint_position_cmd', JointTrajectoryPoint, self.update_cmd,1)
 
         self.init_parameters()
         self.init_targets()
@@ -59,10 +59,12 @@ class HardwareAbstractionLayer():
     #         self.controllers.append(controller)
     #     self.controllers[0].start()
 
+# ========== Initialisation ==========
+
     def init_drivers(self):
         bus = get_bus()
         self.motors.append(Motor(M_BASE, bus))
-        #self.motors.append(Motor(M_EPAULE, bus))
+        self.motors.append(Motor(M_EPAULE, bus))
         #self.motors.append(Motor(M_COUDE, bus))
         #self.motors.append(Motor(M_POIGNET_1, bus))
         #self.motors.append(Motor(M_POIGNET_2, bus))
@@ -114,6 +116,8 @@ class HardwareAbstractionLayer():
             self.motors_target.append(motor_state)
         self.joints_targets = self.actuator_to_joint(self.motors_target)
 
+# ========== transformation ==========
+
     def actuator_to_joint(self, motor_positions: tp.List[Kinematic]) -> tp.List[Kinematic]:
         joint_states = []
         for motor_state, transmission in zip(motor_positions, self.transmissions):
@@ -121,12 +125,17 @@ class HardwareAbstractionLayer():
         
         return joint_states
 
-    def update_torque_cmd(self, msg : Float64MultiArray):
-        self.torque_target = msg.data[0]
+    def joint_to_actuator(self, joint_targets: tp.List[Kinematic]) -> tp.List[float]:
+        motor_targets = []
+        for transmission, target in zip(self.transmissions, joint_targets):
+            motor_targets.append(transmission.joint_to_actuator(target))
+        return motor_targets
 
-    def update_position_cmd(self, msg : JointTrajectoryPoint, test):
-        for i, pos in enumerate(msg.positions):
-            self.joints_targets[i] = Kinematic(pos, 0.0)
+# ========== Read write ==========
+
+    def update_cmd(self, msg : JointTrajectoryPoint, test):
+        for i in range(len(msg.positions)):
+            self.joints_targets[i] = Kinematic(msg.positions[i], msg.velocities[i])
 
     def send_targets(self, motor_targets: tp.List[Kinematic]):
         motor_msg = JointState()
@@ -134,16 +143,10 @@ class HardwareAbstractionLayer():
 
         for i, target in enumerate(motor_targets):
             motor_msg.name.append(self.motors[i].name)
-            motor_msg.position.append(motor_targets[i].position)
-            motor_msg.velocity.append(motor_targets[i].velocity)
+            motor_msg.position.append(target.position)
+            motor_msg.velocity.append(target.velocity)
             self.motors[i].set_kinematic_target(target.position, target.velocity)
         self.motor_target_publisher_.publish(motor_msg)
-
-    def joint_to_actuator(self, joint_positions: tp.List[Kinematic]) -> tp.List[float]:
-        motor_targets = []
-        for transmission, joint in zip(self.transmissions, joint_positions):
-            motor_targets.append(transmission.joint_to_actuator(joint))
-        return motor_targets
 
     def read_state(self) -> tp.List[Kinematic]:
         motors_state = []
@@ -168,50 +171,15 @@ class HardwareAbstractionLayer():
             joint_msg.velocity.append(joint.velocity)
         self.joint_publisher_.publish(joint_msg)
 
-    # def calibrate(self) -> bool:
-    #     targets = []
-
-    #     states = [c.get_state() for c in self.controllers]
-
-    #     # First axis constroller
-    #     if states[0] == HomingState.READY:
-    #         if states[1] == HomingState.INIT and states[2] == HomingState.INIT:
-    #             self.controllers[1].start()
-    #             self.controllers[2].start()
-
-    #     if states[0] == HomingState.WAITING:
-    #         self.controllers[0].start()
-
-    #     if states[1] == HomingState.WAITING and states[2] == HomingState.WAITING:
-    #         self.controllers[1].start()
-    #         self.controllers[2].start()
-
-    #     for state, controller in zip(self.motors_state, self.controllers):
-    #         target_pos = controller.update(state.position, self.period)
-    #         targets.append(Kinematic(target_pos))
-
-    #     self.motors_target = targets
-    #     return all([ c.get_state() == HomingState.READY for c in self.controllers])
+# ========== Fonctionnement ==========
 
     def routine(self, timer):
         self.motors_state = self.read_state()
         self.joint_states = self.actuator_to_joint(self.motors_state)
         self.publish_joints_state(self.joint_states)
+
         self.motors_target = self.joint_to_actuator(self.joints_targets)
         
-        # if not self.is_calibrating:
-        #       self.motors_target = self.joint_to_actuator(self.joints_target)
-        # else:
-        #     finished = self.calibrate()
-        #     if finished:
-        #         for controller, transmission in zip(self.controllers, self.transmissions):
-        #             transmission.compute_zero(high=controller.get_endstop())
-        #         self.joint_targets = self.actuator_to_joint(self.motors_state)
-        #         rospy.loginfo(f'Robot is calibrated!  \o/')
-        #         # self.motors[0].stop()
-        #         # self.motors[1].stop()
-        #         # self.motors[2].stop()
-        #     self.is_calibrating = not finished
         self.send_targets(self.motors_target)
 
     def stop(self):
@@ -219,10 +187,12 @@ class HardwareAbstractionLayer():
         for motor in self.motors:
             motor.tm.idle()
 
+
+
 def main(args=None):
     rospy.init_node('hal',anonymous=True)
     try:
-        hal_object = HardwareAbstractionLayer(0.1)
+        hal_object = HardwareAbstractionLayer(0.01)
         rospy.spin()
     except rospy.ROSInterruptException:
         pass

@@ -7,9 +7,9 @@ from transmission import TransmissionConfig
 
 M_BASE = MotorConfig(
     kv = 200.0,
-    max_current = 5.0,
-    position_gain = 200,
-    velocity_gain = 0.00023,
+    max_current = 10.0,  
+    position_gain = 10,      #200
+    velocity_gain = 0.00003, #0.00023
     can_id = 1,
     direction = 1.0,
     name = "base"
@@ -17,9 +17,9 @@ M_BASE = MotorConfig(
 
 M_EPAULE = MotorConfig(
     kv = 200.0,
-    max_current = 5.0,
-    position_gain = 200,
-    velocity_gain = 0.00023,
+    max_current = 10.0,
+    position_gain = 10,     #200S
+    velocity_gain = 0.00003, #0.00023
     can_id = 2,
     direction = 1.0,
     name = "epaule"
