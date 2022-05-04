@@ -65,8 +65,8 @@ class HardwareAbstractionLayer():
         bus = get_bus()
         self.motors.append(Motor(M_BASE, bus))
         self.motors.append(Motor(M_EPAULE, bus))
-        #self.motors.append(Motor(M_COUDE, bus))
-        #self.motors.append(Motor(M_POIGNET_1, bus))
+        self.motors.append(Motor(M_COUDE, bus))
+        self.motors.append(Motor(M_POIGNET_1, bus))
         #self.motors.append(Motor(M_POIGNET_2, bus))
         #self.motors.append(Motor(M_POIGNET_3, bus))
         rospy.loginfo(f'All motors initialized')
@@ -192,7 +192,7 @@ class HardwareAbstractionLayer():
 def main(args=None):
     rospy.init_node('hal',anonymous=True)
     try:
-        hal_object = HardwareAbstractionLayer(0.01)
+        hal_object = HardwareAbstractionLayer(0.1)
         rospy.spin()
     except rospy.ROSInterruptException:
         pass

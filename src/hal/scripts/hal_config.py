@@ -27,9 +27,9 @@ M_EPAULE = MotorConfig(
 
 M_COUDE = MotorConfig(
     kv = 200.0,
-    max_current = 5.0,
-    position_gain = 200,
-    velocity_gain = 0.00023,
+    max_current = 10.0,
+    position_gain = 10,
+    velocity_gain = 0.00003,
     can_id = 3,
     direction = 1.0,
     name = "coude"
@@ -37,9 +37,9 @@ M_COUDE = MotorConfig(
 
 M_POIGNET_1 = MotorConfig(
     kv = 380.0,
-    max_current = 5.0,
-    position_gain = 200,
-    velocity_gain = 0.00023,
+    max_current = 10.0,
+    position_gain = 10,
+    velocity_gain = 0.00003,
     can_id = 4,
     direction = 1.0,
     name = "poignet 1"
